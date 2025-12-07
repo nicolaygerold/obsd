@@ -1,6 +1,8 @@
 # obsd — Opinionated Obsidian CLI
 
-A terminal-first knowledge management tool built for the **PARA method**. Instead of fighting Obsidian plugins, I made a cli that my coding agents can also use.
+`obsd` is a CLI to manage my PARA knowledge base in obsidian. Instead of fighting Obsidian plugins, I made a cli that my coding agent and I can use together.
+
+This is not a general purpose cli. This is purpose-built for my workflow, my setup and my needs. But it should be pretty easy to adapt if you choose to do it.
 
 ## Why I built this
 
@@ -118,18 +120,18 @@ obsd archive resource git-worktrees-guide
 
 ## Entity Types
 
-| Type           | Location                       | Structure                                             | Purpose                                                    |
-| -------------- | ------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------- |
-| **project**    | `00_projects/<prefix>_<slug>/` | Folder: index.md, quicklinks.md                       | Deliverable with deadline                                  |
-| **area**       | `01_areas/<prefix>_<slug>/`    | Folder: index.md, quicklinks.md, resources.md, notes/ | Ongoing responsibility                                     |
-| **post**       | `01_areas/<area>/`             | Single file                                           | Article/blog post in an area                               |
-| **resource**   | `02_resources/`                | Single file                                           | Reference note, guide, or learning                         |
-| **scratch**    | `<project\|area>/notes/`       | Single dated file                                     | Temporary notes within a project/area                      |
-| **daily**      | `04_journal/daily/`            | Single dated file                                     | Daily reflection and planning                              |
-| **weekly**     | `04_journal/weeklies/`         | Single dated file                                     | Weekly review and retrospective                            |
-| **quote**      | `02_resources/`                | Single file                                           | Memorable quote with metadata                              |
-| **experiment** | `04_journal/experiments/`      | Single file                                           | Structured experiment log (hypothesis, actions, learnings) |
-| **episode**    | `01_areas/<area>/guests/` or `01_areas/<area>/` | Single file | Podcast episode (interview by default, solo with --solo)   |
+| Type           | Location                                        | Structure                                             | Purpose                                                    |
+| -------------- | ----------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------- |
+| **project**    | `00_projects/<prefix>_<slug>/`                  | Folder: index.md, quicklinks.md                       | Deliverable with deadline                                  |
+| **area**       | `01_areas/<prefix>_<slug>/`                     | Folder: index.md, quicklinks.md, resources.md, notes/ | Ongoing responsibility                                     |
+| **post**       | `01_areas/<area>/`                              | Single file                                           | Article/blog post in an area                               |
+| **resource**   | `02_resources/`                                 | Single file                                           | Reference note, guide, or learning                         |
+| **scratch**    | `<project\|area>/notes/`                        | Single dated file                                     | Temporary notes within a project/area                      |
+| **daily**      | `04_journal/daily/`                             | Single dated file                                     | Daily reflection and planning                              |
+| **weekly**     | `04_journal/weeklies/`                          | Single dated file                                     | Weekly review and retrospective                            |
+| **quote**      | `02_resources/`                                 | Single file                                           | Memorable quote with metadata                              |
+| **experiment** | `04_journal/experiments/`                       | Single file                                           | Structured experiment log (hypothesis, actions, learnings) |
+| **episode**    | `01_areas/<area>/guests/` or `01_areas/<area>/` | Single file                                           | Podcast episode (interview by default, solo with --solo)   |
 
 ## Configuration
 
@@ -209,4 +211,3 @@ obsd new post "Building a Design System" --area pb
 obsd archive project xy_website-redesign
 # → Moves to 03_archive/projects/xy_website-redesign/
 ```
-
