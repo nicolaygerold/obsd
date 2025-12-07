@@ -316,3 +316,84 @@ templates:
       # {{title}}
       
       {{content}}{{cursor}}
+
+  episode:
+    filePath: "01_areas/ha_howaiisbuilt/guests/{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      type: interview
+      guest: {{title}}
+      ---
+      
+      # {{title}}
+      
+      ## Description
+      {{cursor}}
+      
+      ## Questions & Chapters
+      
+      | Time | Topic |
+      |------|-------|
+      |  | |
+      
+      ## What does my audience want to hear from you?
+      
+      ---
+      
+      I usually spend ~8 hours researching each episode and the guests.
+      
+      In my research, I found these things really interesting:
+      
+      1. 
+      
+      I want to highlight:
+      
+      1. 
+      
+      I would love to hear stories on:
+      
+      ## What would make this episode a win for you?
+      
+      ---
+      
+      …
+      
+      ## Linktree — Resources and Socials
+      
+      ---
+      
+      If you have any relevant links to your socials, your company, documentation or some resources that might be interesting, feel free to drop them here:
+      
+      1. …
+
+  solo_episode:
+    filePath: "01_areas/ha_howaiisbuilt/{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      type: solo_episode
+      ---
+      
+      # {{title}}
+      
+      ## Description
+      {{cursor}}
+      
+      ## Questions & Chapters
+      
+      | Time | Topic |
+      |------|-------|
+      |  | |
+      
+      ## Script
+      
+      ---
+      
+      ## Research Links
+      
+      1. 
+      
+      ## Title Ideas
+      
+      1. 

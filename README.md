@@ -100,6 +100,12 @@ obsd new quote "Always bet on text"
 
 # Create an experiment
 obsd new experiment "Morning Movement Reset"
+
+# Create a podcast episode (interview)
+obsd new episode "Guest Name"
+
+# Create a solo podcast episode
+obsd new episode "My Episode Title" --solo
 ```
 
 ### Archive entities
@@ -123,6 +129,7 @@ obsd archive resource git-worktrees-guide
 | **weekly**     | `04_journal/weeklies/`         | Single dated file                                     | Weekly review and retrospective                            |
 | **quote**      | `02_resources/`                | Single file                                           | Memorable quote with metadata                              |
 | **experiment** | `04_journal/experiments/`      | Single file                                           | Structured experiment log (hypothesis, actions, learnings) |
+| **episode**    | `01_areas/<area>/guests/` or `01_areas/<area>/` | Single file | Podcast episode (interview by default, solo with --solo)   |
 
 ## Configuration
 
@@ -171,6 +178,7 @@ templates:
 --prefix <xx>    Two-character prefix (auto-generated for project/area, required for scratch)
 --area <name>    Set area/folder for post (use prefix, e.g. pb for personal_blog)
 --deps <deps>    Dependencies (comma-separated, projects only)
+--solo           For episode type, creates solo episode instead of interview
 ```
 
 ## How It Works

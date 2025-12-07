@@ -127,9 +127,12 @@ function createEntity(type: string, title: string, options: any = {}) {
   const templatesContent = readFileSync(templatesPath, "utf-8");
   const config = YAML.parse(templatesContent);
 
-  const template = config.templates[type];
+  // For episode type with --solo flag, use solo_episode template
+  const actualType = type === "episode" && options.solo ? "solo_episode" : type;
+
+  const template = config.templates[actualType];
   if (!template) {
-    console.error(`Template '${type}' not found in templates.yml`);
+    console.error(`Template '${actualType}' not found in templates.yml`);
     process.exit(1);
   }
 
@@ -310,6 +313,8 @@ obsd new resource "Title"                   # Creates 02_resources/resource.md
 obsd new inbox "Title"                      # Creates 05_inbox/dated-note.md (empty)
 obsd new inbox "Title" "Content"            # Creates with content (second arg)
 obsd new scratch "Title" --prefix <xx>      # Creates <prefix>_folder/notes/dated-note.md
+obsd new episode "Guest Name"               # Creates interview episode in ha_howaiisbuilt/guests/
+obsd new episode "Topic" --solo             # Creates solo episode in ha_howaiisbuilt/
 
 obsd archive project <prefix>_<slug>        # Move to 03_archive/projects/
 obsd archive area <prefix>_<slug>           # Move to 03_archive/areas/
@@ -320,6 +325,7 @@ obsd archive resource <slug>                # Move to 03_archive/resources/
 
 - \`--prefix <xx>\` — 2-character prefix (auto-generated for project/area, required for scratch)
 - \`--area <name>\` — Area prefix for posts
+- \`--solo\` — For episode type, creates a solo episode instead of interview
 `;
 }
 
@@ -333,40 +339,44 @@ Commands:
   archive <type> <name>   Archive entity folder
 
 Types:
-  project                 Creates a project folder with index and notes
-  area                    Creates an area folder with index and notes/
-  post                    Creates a blog post in 01_areas/<area>
-  resource                Creates a resource note in 02_resources
-  scratch                 Creates a scratch note in a project or area (requires --prefix)
-  inbox                   Creates a quick capture in 05_inbox with timestamp
-  daily                   Creates a daily note for today in 04_journal/daily/
-  weekly                  Creates a weekly note in 04_journal/weeklies/
-  quote                   Creates a quote note in 02_resources
-  experiment              Creates an experiment note in 04_journal/experiments/
+   project                 Creates a project folder with index and notes
+   area                    Creates an area folder with index and notes/
+   post                    Creates a blog post in 01_areas/<area>
+   resource                Creates a resource note in 02_resources
+   scratch                 Creates a scratch note in a project or area (requires --prefix)
+   inbox                   Creates a quick capture in 05_inbox with timestamp
+   daily                   Creates a daily note for today in 04_journal/daily/
+   weekly                  Creates a weekly note in 04_journal/weeklies/
+   quote                   Creates a quote note in 02_resources
+   experiment              Creates an experiment note in 04_journal/experiments/
+   episode                 Creates a podcast episode (interview by default, solo with --solo)
 
 Examples:
-  obsman new project "My New App"              # auto-generates prefix
-  obsman new project "My New App" --prefix ab  # custom prefix
-  obsman new area "Health"                     # auto-generates prefix
-  obsman new post "How to Build CLIs" --area pb
-  obsman new resource "Git Worktrees Guide"
-  obsman new scratch "Initial thoughts" --prefix ab
-  obsman new inbox "Check out this tool"       # quick capture
-  obsman new inbox "Read later" "https://..." # with instant content
-  obsman new inbox "Task" --type task --content "Details"
-  obsman new inbox "Idea" --type idea
-  obsman new daily                             # creates daily note for today
-  obsman new weekly                            # creates weekly note
-  obsman new quote "Always bet on text"
-  obsman new experiment "Testing new workflow"
-  obsman archive project ab_my-new-app
+   obsman new project "My New App"              # auto-generates prefix
+   obsman new project "My New App" --prefix ab  # custom prefix
+   obsman new area "Health"                     # auto-generates prefix
+   obsman new post "How to Build CLIs" --area pb
+   obsman new resource "Git Worktrees Guide"
+   obsman new scratch "Initial thoughts" --prefix ab
+   obsman new inbox "Check out this tool"       # quick capture
+   obsman new inbox "Read later" "https://..." # with instant content
+   obsman new inbox "Task" --type task --content "Details"
+   obsman new inbox "Idea" --type idea
+   obsman new daily                             # creates daily note for today
+   obsman new weekly                            # creates weekly note
+   obsman new quote "Always bet on text"
+   obsman new experiment "Testing new workflow"
+   obsman new episode "John Smith"              # interview episode
+   obsman new episode "My First Episode" --solo # solo episode
+   obsman archive project ab_my-new-app
 
 Options:
-  --prefix <xx>          Two-character prefix (auto-generated for project/area, required for scratch)
-  --area <name>          Set area for post (use prefix, e.g. pb for personal_blog)
-  --deps <deps>          Set dependencies for project (comma-separated)
-  --type <type>          Set type for inbox (task, link, idea, etc.)
-  --content <text>       Content for inbox item (or pass as second string argument)
+   --prefix <xx>          Two-character prefix (auto-generated for project/area, required for scratch)
+   --area <name>          Set area for post (use prefix, e.g. pb for personal_blog)
+   --deps <deps>          Set dependencies for project (comma-separated)
+   --type <type>          Set type for inbox (task, link, idea, etc.)
+   --content <text>       Content for inbox item (or pass as second string argument)
+   --solo                 For episode type, creates solo episode instead of interview
 `);
 }
 
@@ -419,6 +429,8 @@ if (command === "new") {
       options.type = args[++i];
     } else if (args[i] === "--content") {
       options.content = args[++i];
+    } else if (args[i] === "--solo") {
+      options.solo = true;
     } else if (args[i] === "--prefix" || args[i] === "--project") {
       const prefixValue = args[++i];
       if (prefixValue.length !== 2) {
