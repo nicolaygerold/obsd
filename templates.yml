@@ -77,6 +77,8 @@ templates:
       posted:
       ---
       
+      # {{title}}
+      
       {{cursor}}
       
       ### More Materials
@@ -118,6 +120,8 @@ templates:
       ---
       created_date: {{date}}
       ---
+      
+      # {{title}}
       
       {{cursor}}
 
@@ -216,6 +220,8 @@ templates:
       tags:
         - quote
       ---
+      
+      # {{title}}
         
       > [!QUOTE]
       >  `= this.quote`
@@ -232,6 +238,9 @@ templates:
       tags:
         - experiment
       ---
+      
+      # {{title}}
+      
       Give it a fun or clear name (e.g. "Morning Movement Reset" or "Curious Conversations").
       
       ---
