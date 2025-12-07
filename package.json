@@ -1,0 +1,31 @@
+{
+  "name": "obsd",
+  "version": "0.1.0",
+  "description": "CLI for managing Obsidian projects and areas",
+  "type": "module",
+  "bin": {
+    "obsd": "./dist/index.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target node && cp templates.yml dist/",
+    "dev": "bun run src/index.ts",
+    "install": "bun run build && bun link --force"
+  },
+  "keywords": [
+    "obsidian",
+    "cli",
+    "project-management"
+  ],
+  "author": "Nicolay Gerold",
+  "license": "MIT",
+  "dependencies": {
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.2"
+  }
+}

@@ -1,0 +1,294 @@
+vaultPath: /Users/nicolaygerold/Documents/nicolay-obsidian
+areasRoot: 01_areas
+projectsRoot: 00_projects
+resourcesRoot: 02_resources
+archiveAreasRoot: 03_archive/areas
+archiveProjectsRoot: 03_archive/projects
+archiveResourcesRoot: 03_archive/resources
+
+templates:
+  area:
+    folderPattern: "01_areas/{{prefix}}_{{slug}}"
+    files:
+      - name: "index.md"
+        template: |
+          ---
+          title: {{title}}
+          type: Area
+          status: {{status|Active}}
+          prefix: {{prefix}}
+          created_date: {{date}}
+          ---
+          
+          ## Overview
+          {{cursor}}
+          
+          ## Responsibilities
+          - 
+      - name: "quicklinks.md"
+        template: |
+          **{{title}}**
+          
+          - [[index|Index]]
+          - [[../..|Vault Home]]
+      - name: "resources.md"
+        template: |
+          **Resources**
+          
+          Links to resources from [[02_resources/|Resources]] folder:
+          - 
+      - name: "notes/.gitkeep"
+        template: ""
+
+  project:
+    folderPattern: "00_projects/{{prefix}}_{{slug}}"
+    files:
+      - name: "index.md"
+        template: |
+          ---
+          title: {{title}}
+          type: Project
+          status: {{status|Planned}}
+          area: {{area}}
+          dependencies: {{dependencies|none}}
+          prefix: {{prefix}}
+          created_date: {{date}}
+          ---
+          
+          ## Outcome
+          - {{cursor}}
+          
+          ## Next Actions
+          - 
+      - name: "quicklinks.md"
+        template: |
+          **{{title}}**
+          
+          - [[index|Index]]
+          - [[../..|Projects Root]]
+
+  post:
+    filePath: "01_areas/{{area}}/{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      tags:
+        - content
+      posted:
+      ---
+      
+      {{cursor}}
+      
+      ### More Materials
+      - 
+      ## Resources
+      - [[Writing Guide - Nicolay Gerold]] 
+      
+      ## Backmatter
+      In which context will I want to stumble upon it again?
+      - see::
+
+  resource:
+    filePath: "02_resources/{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      updated_date: {{date}}
+      tags:
+        - note
+        - status/draft
+      url: 
+      linked:
+      ---
+      
+      {{cursor}}
+      
+      ## Backmatter
+      In which context will I want to stumble upon it again?
+      **Source**
+      	- based_on::
+      **References**
+      	- see::
+      **Target**
+      	- used_in::
+
+  scratch:
+    filePath: "{{folder}}/notes/{{date}}-{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      ---
+      
+      {{cursor}}
+
+  daily:
+    filePath: "04_journal/daily/{{date}}.md"
+    template: |
+      ---
+      tags:
+        - dailynote
+      created_date: "{{date}}"
+      ---
+      [[How to use daily notes]]
+      [[Productivity Guide]]
+      >**Current Pact**: No email, socials, Whatsapp, slack, internet besides docs and code until 2.5 hour focus block is done for 30 days straight. 
+      ---
+      
+      Whenever you're stuck, ask:
+      - 🧠 Head: Is this _really_ the right task?
+      - ❤️ Heart: Am I excited by this—or afraid/bored?    
+      - ✋ Hand: Do I know _how_ to do this?
+      - ⚡ What is the biggest lever that I could apply to this? 
+      - 🌱 Do I need a recharge? 1-5 minute meditation, make tea, go for a walk
+      
+      What are the three things to get done today?
+      - [ ] 
+      - [ ] 
+      - [ ] 
+      
+      
+      ### Evening Review
+      
+      **Mindest**
+      - 🌱 **Insights**: What sparked curiosity or clarity?
+      	    
+      - ⚡ **Energy**: When did I feel most alive or most drained? When did you get into flow or play mode? 
+          
+      - 🙂 **Mood**: What emotions showed up?
+          
+      - 🧍 **Encounters**: Who did I interact with, and how did that feel?
+      
+      **Plus, Minus, Next:** 
+      - - ➕ What went well?
+              
+      - ➖ What didn't feel great or caused friction?
+      	
+      - 🔜 What's your next small move based on that?
+
+  weekly:
+    filePath: "04_journal/weeklies/{{date}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      tags:
+      ---
+      
+      
+      >**Current Pact**: 1 great piece of code each day for the next 30 days. Refactor to make the change, write the tests, make the change. 
+      
+      
+      **Mindest:** Review the calendar. Am I working in my peak window? 
+      - 🌱 **Insights**: What sparked curiosity or clarity?
+      	    
+      - ⚡ **Energy**: When did I feel most alive or most drained?
+          
+      - 🙂 **Mood**: What emotions showed up?
+          
+      - 🧍 **Encounters**: Who did I interact with, and how did that feel?
+      
+      **Plus, Minus, Next:** 
+      - ➕ What went well?
+              
+      - ➖ What didn't feel great or caused friction?
+      	
+      - 🔜 What's your next small move based on that?
+      
+      **Experiments:** Review these weeks experiments. 
+      - **What am I testing?**
+      		
+      - **What am I learning about myself?**
+      		
+      - **What small risks can I take to explore a path before I commit?**
+      
+      **Pact Review:**
+      - 🏄 Persist: Is this giving me energy? Let's keep going.
+      		
+      - 🧘 Pause: Is this draining me? Time to rest.
+      		
+      - 🛠 Pivot: Can I tweak it to make it work better?
+
+  quote:
+    filePath: "02_resources/{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      updated_date: {{date}}
+      tags:
+        - quote
+      ---
+        
+      > [!QUOTE]
+      >  `= this.quote`
+      >  — `= this.author`
+      
+      In which context will I want to stumble upon it again?
+      - see::
+
+  experiment:
+    filePath: "04_journal/experiments/{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      tags:
+        - experiment
+      ---
+      Give it a fun or clear name (e.g. "Morning Movement Reset" or "Curious Conversations").
+      
+      ---
+      
+      ### 🧩 1. **What am I exploring?**
+      
+      > A brief statement of curiosity or challenge.
+      
+      > "I'm curious if daily drawing will help me reconnect with creativity."  
+      > "I want to see if avoiding screens in the morning improves my mood."
+      
+      ---
+      
+      ### 🎯 2. **Hypothesis**
+      
+      > What do you _think_ might happen?
+      
+      > "If I journal for 10 minutes every night, I'll fall asleep faster."  
+      > "If I block 2 hours for deep work in the morning, I'll get more done with less stress."
+      
+      ---
+      
+      ### 📆 3. **Pact (Action + Duration)**
+      
+      > Your small, repeatable, trackable commitment.
+      
+      **I will** [action] **for** [duration].
+      
+      > "I will write 100 words daily for 10 days."  
+      > "I will call one friend every Saturday for 4 weeks."
+      
+      ---
+      
+      ### 📓 4. **Field Notes (Log)**
+      
+      Use a short bullet or journal-style format. Suggested columns:
+      
+      | Date  | Did I do it? | Mood/Energy | Key Insight / Note              |
+      | ----- | ------------ | ----------- | ------------------------------- |
+      | Day 1 | ✅            | 😌 Calm     | Felt grounded after journaling. |
+      | Day 2 | ✅            | 😕 Tired    | Skipped tea—harder to focus.    |
+      | …     | …            | …           | …                               |
+      
+      ---
+      
+      ### ➕➖ 6. **Reflection (End of Experiment)**
+      
+      #### ✅ What went well (Plus)?
+      
+      > Energy boosts, surprises, insights, consistency…
+      
+      #### ❌ What didn't go well (Minus)?
+      
+      > Resistance, challenges, friction, emotional patterns…
+      
+      #### 🔄 What's next?
+      
+      > Will you persist, pause, or pivot? Why?
+      
+      > "I want to keep going, but only 3x per week feels more sustainable."
