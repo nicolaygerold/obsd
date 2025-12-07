@@ -6,7 +6,9 @@ A terminal-first knowledge management tool built for the **PARA method**. Instea
 
 Obsidian's a solid editor, but the plugin system is a pain, I always had to do 3 clicks to test a new update in dev.
 
-I am working on [Amp](https://ampcode.com) - a coding agent. Naturally, I want it to do the work. The best tools for coding agents to use is a cli.
+I am working on [Amp](https://ampcode.com) - a coding agent. Naturally, I want it to do the work of managing my Obsidian. The best tools for humans and coding agents to use together are clis; this is how `obsd` came to be.
+
+I have not written a single line of code myself, but have only used the Amp free mode.
 
 ## PARA — The System I Use
 
@@ -199,3 +201,4 @@ obsd new post "Building a Design System" --area pb
 obsd archive project xy_website-redesign
 # → Moves to 03_archive/projects/xy_website-redesign/
 ```
+
