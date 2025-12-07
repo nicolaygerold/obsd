@@ -228,16 +228,101 @@ function archiveEntity(
   console.log(`  ${targetPath}`);
 }
 
-function initConfig() {
-  console.log("Templates are in the obsman repo at templates.yml");
-  console.log("Edit that file to customize your vault setup and templates.");
+function initVault() {
+  const templatesPath = findTemplatesPath();
+  const config = YAML.parse(readFileSync(templatesPath, "utf-8"));
+
+  // Collect all directories to create from config
+  const dirsToCreate = new Set<string>();
+
+  // Add root directories
+  [
+    config.projectsRoot,
+    config.areasRoot,
+    config.resourcesRoot,
+    config.archiveProjectsRoot,
+    config.archiveAreasRoot,
+    config.archiveResourcesRoot,
+  ].forEach((dir) => {
+    if (dir) dirsToCreate.add(dir);
+  });
+
+  // Add journal directories
+  const journalDirs = ["04_journal", "04_journal/daily", "04_journal/weeklies", "04_journal/experiments"];
+  journalDirs.forEach((dir) => dirsToCreate.add(dir));
+
+  // Create all directories
+  let createdCount = 0;
+  for (const dir of dirsToCreate) {
+    const fullPath = join(config.vaultPath, dir);
+    if (!existsSync(fullPath)) {
+      mkdirSync(fullPath, { recursive: true });
+      console.log(`✓ Created ${dir}`);
+      createdCount++;
+    }
+  }
+
+  if (createdCount === 0) {
+    console.log("All directories already exist.");
+  } else {
+    console.log(`\n✓ Vault initialized with ${createdCount} new directories`);
+    console.log(`Vault location: ${config.vaultPath}`);
+  }
+
+  // Create or update AGENTS.md
+  const agentsMdPath = join(config.vaultPath, "AGENTS.md");
+  const agentsContent = generateAgentsMd();
+
+  if (existsSync(agentsMdPath)) {
+    // Read existing content to preserve anything before our marker
+    const existing = readFileSync(agentsMdPath, "utf-8");
+    if (existing.includes("## obsd Commands")) {
+      // Update existing obsd section
+      const beforeObsd = existing.split("## obsd Commands")[0];
+      writeFileSync(agentsMdPath, beforeObsd + agentsContent);
+    } else {
+      // Append our section
+      writeFileSync(agentsMdPath, existing + "\n" + agentsContent);
+    }
+  } else {
+    writeFileSync(agentsMdPath, agentsContent);
+  }
+
+  console.log("✓ Created/updated AGENTS.md");
+}
+
+function generateAgentsMd(): string {
+  return `## obsd Commands
+
+Use \`obsd\` to create and manage notes in the vault using the PARA method (Projects, Areas, Resources, Archives).
+
+### Quick Reference
+
+\`\`\`bash
+obsd new project "Title"                    # Creates 00_projects/<prefix>_<slug>/
+obsd new area "Title"                       # Creates 01_areas/<prefix>_<slug>/
+obsd new post "Title" --area <prefix>       # Creates <area>/post.md
+obsd new resource "Title"                   # Creates 02_resources/resource.md
+obsd new scratch "Title" --prefix <xx>      # Creates <prefix>_folder/notes/dated-note.md
+
+obsd archive project <prefix>_<slug>        # Move to 03_archive/projects/
+obsd archive area <prefix>_<slug>           # Move to 03_archive/areas/
+obsd archive resource <slug>                # Move to 03_archive/resources/
+\`\`\`
+
+### Options
+
+- \`--prefix <xx>\` — 2-character prefix (auto-generated for project/area, required for scratch)
+- \`--area <name>\` — Area prefix for posts
+`;
 }
 
 function printUsage() {
   console.log(`
-Usage: obsman <command> [options]
+Usage: obsd <command> [options]
 
 Commands:
+  init                    Initialize vault folders
   new <type> [title]      Create new entity (defaults to "Untitled")
   archive <type> <name>   Archive entity folder
 
@@ -281,7 +366,7 @@ if (!command || command === "help" || command === "--help") {
 }
 
 if (command === "init") {
-  initConfig();
+  initVault();
   process.exit(0);
 }
 

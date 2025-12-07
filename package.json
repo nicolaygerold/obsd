@@ -12,7 +12,7 @@
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target node && cp templates.yml dist/",
     "dev": "bun run src/index.ts",
-    "install": "bun run build && bun link --force"
+    "setup": "bun run build && bun link --force"
   },
   "keywords": [
     "obsidian",
