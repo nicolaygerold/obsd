@@ -2,6 +2,7 @@ vaultPath: /Users/nicolaygerold/Documents/nicolay-obsidian
 areasRoot: 01_areas
 projectsRoot: 00_projects
 resourcesRoot: 02_resources
+inboxRoot: 05_inbox
 archiveAreasRoot: 03_archive/areas
 archiveProjectsRoot: 03_archive/projects
 archiveResourcesRoot: 03_archive/resources
@@ -303,3 +304,15 @@ templates:
       > Will you persist, pause, or pivot? Why?
       
       > "I want to keep going, but only 3x per week feels more sustainable."
+
+  inbox:
+    filePath: "05_inbox/{{date}}-{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      type: {{type|task}}
+      ---
+      
+      # {{title}}
+      
+      {{content}}{{cursor}}

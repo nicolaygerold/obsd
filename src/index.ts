@@ -32,6 +32,7 @@ interface Config {
   areasRoot: string;
   projectsRoot: string;
   resourcesRoot: string;
+  inboxRoot: string;
   archiveAreasRoot: string;
   archiveProjectsRoot: string;
   archiveResourcesRoot: string;
@@ -150,6 +151,8 @@ function createEntity(type: string, title: string, options: any = {}) {
     status: type === "project" ? "Planned" : "Active",
     area: options.area || "personal_blog",
     dependencies: options.dependencies || "none",
+    type: options.type || "task",
+    content: options.content || "",
     prefix: prefix || "",
     folder: options.folder || "",
   };
@@ -240,6 +243,7 @@ function initVault() {
     config.projectsRoot,
     config.areasRoot,
     config.resourcesRoot,
+    config.inboxRoot,
     config.archiveProjectsRoot,
     config.archiveAreasRoot,
     config.archiveResourcesRoot,
@@ -303,6 +307,8 @@ obsd new project "Title"                    # Creates 00_projects/<prefix>_<slug
 obsd new area "Title"                       # Creates 01_areas/<prefix>_<slug>/
 obsd new post "Title" --area <prefix>       # Creates <area>/post.md
 obsd new resource "Title"                   # Creates 02_resources/resource.md
+obsd new inbox "Title"                      # Creates 05_inbox/dated-note.md (empty)
+obsd new inbox "Title" "Content"            # Creates with content (second arg)
 obsd new scratch "Title" --prefix <xx>      # Creates <prefix>_folder/notes/dated-note.md
 
 obsd archive project <prefix>_<slug>        # Move to 03_archive/projects/
@@ -332,6 +338,7 @@ Types:
   post                    Creates a blog post in 01_areas/<area>
   resource                Creates a resource note in 02_resources
   scratch                 Creates a scratch note in a project or area (requires --prefix)
+  inbox                   Creates a quick capture in 05_inbox with timestamp
   daily                   Creates a daily note for today in 04_journal/daily/
   weekly                  Creates a weekly note in 04_journal/weeklies/
   quote                   Creates a quote note in 02_resources
@@ -344,6 +351,10 @@ Examples:
   obsman new post "How to Build CLIs" --area pb
   obsman new resource "Git Worktrees Guide"
   obsman new scratch "Initial thoughts" --prefix ab
+  obsman new inbox "Check out this tool"       # quick capture
+  obsman new inbox "Read later" "https://..." # with instant content
+  obsman new inbox "Task" --type task --content "Details"
+  obsman new inbox "Idea" --type idea
   obsman new daily                             # creates daily note for today
   obsman new weekly                            # creates weekly note
   obsman new quote "Always bet on text"
@@ -354,6 +365,8 @@ Options:
   --prefix <xx>          Two-character prefix (auto-generated for project/area, required for scratch)
   --area <name>          Set area for post (use prefix, e.g. pb for personal_blog)
   --deps <deps>          Set dependencies for project (comma-separated)
+  --type <type>          Set type for inbox (task, link, idea, etc.)
+  --content <text>       Content for inbox item (or pass as second string argument)
 `);
 }
 
@@ -385,13 +398,27 @@ if (command === "new") {
   }
 
   const options: any = {};
-  const startIndex = args[2] && !args[2].startsWith("--") ? 3 : 2;
+  let startIndex = args[2] && !args[2].startsWith("--") ? 3 : 2;
+
+  // Check if next arg is content (not a flag) for inbox type
+  if (
+    type === "inbox" &&
+    args[startIndex] &&
+    !args[startIndex].startsWith("--")
+  ) {
+    options.content = args[startIndex];
+    startIndex++;
+  }
 
   for (let i = startIndex; i < args.length; i++) {
     if (args[i] === "--area") {
       options.area = args[++i];
     } else if (args[i] === "--deps") {
       options.dependencies = args[++i];
+    } else if (args[i] === "--type") {
+      options.type = args[++i];
+    } else if (args[i] === "--content") {
+      options.content = args[++i];
     } else if (args[i] === "--prefix" || args[i] === "--project") {
       const prefixValue = args[++i];
       if (prefixValue.length !== 2) {
