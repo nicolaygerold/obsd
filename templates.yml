@@ -103,6 +103,8 @@ templates:
       linked:
       ---
       
+      # {{title}}
+      
       {{cursor}}
       
       ## Backmatter
