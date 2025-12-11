@@ -11,6 +11,7 @@ import {
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import YAML from "yaml";
+import { Command } from "commander";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -318,6 +319,7 @@ obsd new resource "Title"                   # Creates 02_resources/resource.md
 obsd new inbox "Title"                      # Creates 05_inbox/dated-note.md (empty)
 obsd new inbox "Title" "Content"            # Creates with content (second arg)
 obsd new scratch "Title" --prefix <xx>      # Creates <prefix>_folder/notes/dated-note.md
+obsd new scratch "Title" --prefix <xx> --at-root  # Creates at folder root
 obsd new episode "Guest Name"               # Creates interview episode in ha_howaiisbuilt/guests/
 obsd new episode "Topic" --solo             # Creates solo episode in ha_howaiisbuilt/
 
@@ -331,124 +333,55 @@ obsd archive resource <slug>                # Move to 03_archive/resources/
 - \`--prefix <xx>\` — 2-character prefix (auto-generated for project/area, required for scratch)
 - \`--area <name>\` — Area prefix for posts
 - \`--solo\` — For episode type, creates a solo episode instead of interview
+- \`--at-root\` — For scratch type, creates file at folder root (not in notes/)
 `;
 }
 
-function printUsage() {
-  console.log(`
-Usage: obsd <command> [options]
+const program = new Command();
 
-Commands:
-  init                    Initialize vault folders
-  new <type> [title]      Create new entity (defaults to "Untitled")
-  archive <type> <name>   Archive entity folder
+program
+  .name("obsd")
+  .description("Manage notes in your Obsidian vault using PARA method")
+  .version("1.0.0");
 
-Types:
-   project                 Creates a project folder with index and notes
-   area                    Creates an area folder with index and notes/
-   post                    Creates a blog post in 01_areas/<area>
-   resource                Creates a resource note in 02_resources
-   scratch                 Creates a scratch note in a project or area (requires --prefix, use --at-root for root)
-   inbox                   Creates a quick capture in 05_inbox with timestamp
-   daily                   Creates a daily note for today in 04_journal/daily/
-   weekly                  Creates a weekly note in 04_journal/weeklies/
-   quote                   Creates a quote note in 02_resources
-   experiment              Creates an experiment note in 04_journal/experiments/
-   episode                 Creates a podcast episode (interview by default, solo with --solo)
+// Init command
+program
+  .command("init")
+  .description("Initialize vault folders")
+  .action(() => {
+    initVault();
+  });
 
-Examples:
-   obsman new project "My New App"              # auto-generates prefix
-   obsman new project "My New App" --prefix ab  # custom prefix
-   obsman new area "Health"                     # auto-generates prefix
-   obsman new post "How to Build CLIs" --area pb
-   obsman new resource "Git Worktrees Guide"
-   obsman new scratch "Initial thoughts" --prefix ab
-   obsman new scratch "Strategy" --prefix ab --at-root
-   obsman new inbox "Check out this tool"       # quick capture
-   obsman new inbox "Read later" "https://..." # with instant content
-   obsman new inbox "Task" --type task --content "Details"
-   obsman new inbox "Idea" --type idea
-   obsman new daily                             # creates daily note for today
-   obsman new weekly                            # creates weekly note
-   obsman new quote "Always bet on text"
-   obsman new experiment "Testing new workflow"
-   obsman new episode "John Smith"              # interview episode
-   obsman new episode "My First Episode" --solo # solo episode
-   obsman archive project ab_my-new-app
+// New command with subcommand approach
+program
+  .command("new <type> [title]")
+  .description("Create new entity (defaults to 'Untitled')")
+  .option("--prefix <xx>", "Two-character prefix for project/area/scratch")
+  .option("--area <name>", "Area prefix for posts (e.g., pb)")
+  .option("--deps <deps>", "Dependencies for project (comma-separated)")
+  .option("--type <type>", "Type for inbox (task, link, idea, etc.)")
+  .option("--content <text>", "Content for inbox item")
+  .option("--solo", "For episode type, creates solo episode instead of interview")
+  .option("--at-root", "For scratch type, creates file at folder root (not in notes/)")
+  .action(async (type: string, title: string | undefined, opts: any) => {
+    let actualTitle = title || "Untitled";
 
-Options:
-   --prefix <xx>          Two-character prefix (auto-generated for project/area, required for scratch)
-   --area <name>          Set area for post (use prefix, e.g. pb for personal_blog)
-   --deps <deps>          Set dependencies for project (comma-separated)
-   --type <type>          Set type for inbox (task, link, idea, etc.)
-   --content <text>       Content for inbox item (or pass as second string argument)
-   --solo                 For episode type, creates solo episode instead of interview
-   --at-root              For scratch type, creates file at folder root (not in notes/)
-`);
-}
+    // For scratch, validate prefix
+    if (type === "scratch") {
+      const prefix = opts.prefix;
+      if (!prefix && !opts.atRoot) {
+        console.error("Error: --prefix required for scratch type");
+        console.error("Usage: obsd new scratch \"Title\" --prefix ab");
+        process.exit(1);
+      }
 
-const args = process.argv.slice(2);
-const command = args[0];
-
-if (!command || command === "help" || command === "--help") {
-  printUsage();
-  process.exit(0);
-}
-
-if (command === "init") {
-  initVault();
-  process.exit(0);
-}
-
-if (command === "new") {
-  const type = args[1];
-  let title = args[2];
-
-  if (!type) {
-    console.error("Usage: obsman new <type> [title]");
-    process.exit(1);
-  }
-
-  // Default to "Untitled" if no title provided
-  if (!title || title.startsWith("--")) {
-    title = "Untitled";
-  }
-
-  const options: any = {};
-  let startIndex = args[2] && !args[2].startsWith("--") ? 3 : 2;
-
-  // Check if next arg is content (not a flag) for inbox type
-  if (
-    type === "inbox" &&
-    args[startIndex] &&
-    !args[startIndex].startsWith("--")
-  ) {
-    options.content = args[startIndex];
-    startIndex++;
-  }
-
-  for (let i = startIndex; i < args.length; i++) {
-    if (args[i] === "--area") {
-      options.area = args[++i];
-    } else if (args[i] === "--deps") {
-      options.dependencies = args[++i];
-    } else if (args[i] === "--type") {
-      options.type = args[++i];
-    } else if (args[i] === "--content") {
-      options.content = args[++i];
-    } else if (args[i] === "--solo") {
-      options.solo = true;
-    } else if (args[i] === "--at-root") {
-      options.atRoot = true;
-    } else if (args[i] === "--prefix" || args[i] === "--project") {
-      const prefixValue = args[++i];
-      if (prefixValue.length !== 2) {
+      if (prefix && prefix.length !== 2) {
         console.error("Error: --prefix must be exactly 2 characters");
         process.exit(1);
       }
 
-      // For scratch notes, find the folder with this prefix
-      if (type === "scratch") {
+      // Find the folder with this prefix
+      if (prefix) {
         const templatesPath = findTemplatesPath();
         const config = YAML.parse(readFileSync(templatesPath, "utf-8"));
 
@@ -457,11 +390,12 @@ if (command === "new") {
         if (existsSync(projectsDir)) {
           const projectDirs = readdirSync(projectsDir);
           const projectDir = projectDirs.find((d) =>
-            d.startsWith(prefixValue + "_"),
+            d.startsWith(prefix + "_"),
           );
           if (projectDir) {
-            options.folder = join(config.projectsRoot, projectDir);
-            continue;
+            opts.folder = join(config.projectsRoot, projectDir);
+            createEntity(type, actualTitle, opts);
+            return;
           }
         }
 
@@ -469,47 +403,36 @@ if (command === "new") {
         const areasDir = join(config.vaultPath, config.areasRoot);
         if (existsSync(areasDir)) {
           const areaDirs = readdirSync(areasDir);
-          const areaDir = areaDirs.find((d) => d.startsWith(prefixValue + "_"));
+          const areaDir = areaDirs.find((d) => d.startsWith(prefix + "_"));
           if (areaDir) {
-            options.folder = join(config.areasRoot, areaDir);
-            continue;
+            opts.folder = join(config.areasRoot, areaDir);
+            createEntity(type, actualTitle, opts);
+            return;
           }
         }
 
         console.error(
-          `Error: No project or area found with prefix '${prefixValue}'`,
+          `Error: No project or area found with prefix '${prefix}'`,
         );
         process.exit(1);
-      } else {
-        // For projects and areas, just store the prefix
-        options.prefix = prefixValue;
       }
     }
-  }
 
-  if (type === "scratch" && !options.folder) {
-    console.error("Error: --prefix required for scratch type");
-    console.error('Usage: obsman new scratch "Title" --prefix ab');
-    process.exit(1);
-  }
+    createEntity(type, actualTitle, opts);
+  });
 
-  createEntity(type, title, options);
-  process.exit(0);
-}
+// Archive command
+program
+  .command("archive <type> <name>")
+  .description("Archive entity folder")
+  .action((type: string, name: string) => {
+    const validTypes = ["project", "area", "resource"];
+    if (!validTypes.includes(type)) {
+      console.error(`Invalid type: ${type}`);
+      console.error(`Valid types: ${validTypes.join(", ")}`);
+      process.exit(1);
+    }
+    archiveEntity(type as "project" | "area" | "resource", name);
+  });
 
-if (command === "archive") {
-  const type = args[1] as "project" | "area" | "resource";
-  const name = args[2];
-
-  if (!type || !name) {
-    console.error("Usage: obsman archive <type> <name>");
-    process.exit(1);
-  }
-
-  archiveEntity(type, name);
-  process.exit(0);
-}
-
-console.error("Unknown command:", command);
-printUsage();
-process.exit(1);
+program.parse();
