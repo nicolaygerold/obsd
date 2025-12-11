@@ -117,6 +117,39 @@ templates:
       **Target**
       	- used_in::
 
+  resource_folder:
+    folderPattern: "02_resources/{{prefix}}_{{slug}}"
+    files:
+      - name: "index.md"
+        template: |
+          ---
+          title: {{title}}
+          type: Resource
+          prefix: {{prefix}}
+          created_date: {{date}}
+          updated_date: {{date}}
+          tags:
+            - resource
+            - status/draft
+          url:
+          linked:
+          ---
+
+          # {{title}}
+
+          {{cursor}}
+
+          ## Backmatter
+          In which context will I want to stumble upon it again?
+          **Source**
+          	- based_on::
+          **References**
+          	- see::
+          **Target**
+          	- used_in::
+      - name: "notes/.gitkeep"
+        template: ""
+
   scratch:
     filePath: "{{folder}}/notes/{{date}}-{{slug}}.md"
     template: |

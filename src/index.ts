@@ -136,6 +136,11 @@ function createEntity(type: string, title: string, options: any = {}) {
     actualType = "scratch_root";
   }
 
+  // For resource type with --prefix flag, use resource_folder template
+  if (type === "resource" && options.prefix) {
+    actualType = "resource_folder";
+  }
+
   const template = config.templates[actualType];
   if (!template) {
     console.error(`Template '${actualType}' not found in templates.yml`);
@@ -152,6 +157,8 @@ function createEntity(type: string, title: string, options: any = {}) {
     prefix = generateUniquePrefix(config);
     console.log(`Generated prefix: ${prefix}`);
   }
+
+
 
   const vars: Record<string, string> = {
     title,
@@ -328,6 +335,7 @@ obsd new project "Title"                    # Creates 00_projects/<prefix>_<slug
 obsd new area "Title"                       # Creates 01_areas/<prefix>_<slug>/
 obsd new post "Title" --area <prefix>       # Creates <area>/post.md
 obsd new resource "Title"                   # Creates 02_resources/resource.md
+obsd new resource "Title" --prefix <xx>     # Creates resource inside 02_resources/<prefix>_<slug>/ or creates folder if doesn't exist
 obsd new inbox "Title"                      # Creates 05_inbox/dated-note.md (empty)
 obsd new inbox "Title" "Content"            # Creates with content (second arg)
 obsd new scratch "Title" --prefix <xx>      # Creates <prefix>_folder/notes/dated-note.md
@@ -337,12 +345,12 @@ obsd new episode "Topic" --solo             # Creates solo episode in ha_howaiis
 
 obsd archive project <prefix>_<slug>        # Move to 03_archive/projects/
 obsd archive area <prefix>_<slug>           # Move to 03_archive/areas/
-obsd archive resource <slug>                # Move to 03_archive/resources/
+obsd archive resource <prefix>_<slug>       # Move to 03_archive/resources/ (folder)
 \`\`\`
 
 ### Options
 
-- \`--prefix <xx>\` — 2-character prefix (auto-generated for project/area, required for scratch)
+- \`--prefix <xx>\` — 2-character prefix (auto-generated for project/area, use for scratch/resource to target specific folder)
 - \`--area <name>\` — Area prefix for posts
 - \`--solo\` — For episode type, creates a solo episode instead of interview
 - \`--at-root\` — For scratch type, creates file at folder root (not in notes/)
@@ -368,7 +376,7 @@ program
 program
   .command("new <type> [title]")
   .description("Create new entity (defaults to 'Untitled')")
-  .option("--prefix <xx>", "Two-character prefix for project/area/scratch")
+  .option("--prefix <xx>", "Two-character prefix for project/area/scratch/resource")
   .option("--area <name>", "Area prefix for posts (e.g., pb)")
   .option("--deps <deps>", "Dependencies for project (comma-separated)")
   .option("--type <type>", "Type for inbox (task, link, idea, etc.)")
@@ -430,6 +438,84 @@ program
       }
     }
 
+    // For resource, resolve prefix to resource folder
+    if (type === "resource" && opts.prefix) {
+      const prefix = opts.prefix;
+      if (prefix.length !== 2) {
+        console.error("Error: --prefix must be exactly 2 characters");
+        process.exit(1);
+      }
+
+      const templatesPath = findTemplatesPath();
+      const config = YAML.parse(readFileSync(templatesPath, "utf-8"));
+
+      // Check if resource folder with this prefix exists
+      const resourcesDir = join(config.vaultPath, config.resourcesRoot);
+      let resourceDir: string | undefined;
+      
+      if (existsSync(resourcesDir)) {
+        const resourceDirs = readdirSync(resourcesDir);
+        resourceDir = resourceDirs.find((d) =>
+          d.startsWith(prefix + "_"),
+        );
+      }
+
+      if (resourceDir) {
+        // Found existing resource folder - create single file resource directly in folder
+        const actualSlug = slugify(actualTitle);
+        const filePath = join(
+          config.vaultPath,
+          config.resourcesRoot,
+          resourceDir,
+          `${actualSlug}.md`,
+        );
+
+        if (existsSync(filePath)) {
+          console.error(`✗ File already exists: ${filePath}`);
+          process.exit(1);
+        }
+
+        const fileDir = dirname(filePath);
+        if (!existsSync(fileDir)) {
+          mkdirSync(fileDir, { recursive: true });
+        }
+
+        const template = YAML.parse(readFileSync(templatesPath, "utf-8"))
+          .templates.resource.template;
+        const vars: Record<string, string> = {
+          title: actualTitle,
+          slug: actualSlug,
+          date: new Date().toISOString().split("T")[0],
+          status: "Active",
+          area: opts.area || "pb_personal_blog",
+          dependencies: opts.dependencies || "none",
+          type: opts.type || "task",
+          content: opts.content || "",
+          prefix: prefix,
+          folder: opts.folder || "",
+        };
+
+        let content = template;
+        const VAR_PATTERN = /\{\{([^}]+)\}\}/g;
+        content = content.replace(VAR_PATTERN, (_, rawKey) => {
+          const [key, def] = rawKey.split("|").map((s: string) => s.trim());
+          const val = vars[key];
+          return val ?? def ?? "";
+        });
+        content = content.replace("{{cursor}}", "");
+
+        writeFileSync(filePath, content);
+        console.log(`✓ Created resource: ${actualTitle}`);
+        console.log(`  ${filePath}`);
+        return;
+      }
+
+      // If no existing resource folder found, create a new resource_folder
+      opts.prefix = prefix; // ensure prefix is set
+      createEntity("resource_folder", actualTitle, opts);
+      return;
+    }
+
     createEntity(type, actualTitle, opts);
   });
 
@@ -444,6 +530,7 @@ program
       console.error(`Valid types: ${validTypes.join(", ")}`);
       process.exit(1);
     }
+    // Note: resource type works for both single files and resource folders
     archiveEntity(type as "project" | "area" | "resource", name);
   });
 
