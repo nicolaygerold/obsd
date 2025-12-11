@@ -75,21 +75,17 @@ templates:
       created_date: {{date}}
       tags:
         - content
+        - status/backlog
       posted:
+      see_more:
       ---
 
       # {{title}}
 
       {{cursor}}
 
-      ### More Materials
-      - 
       ## Resources
-      - [[Writing Guide - Nicolay Gerold]] 
-
-      ## Backmatter
-      In which context will I want to stumble upon it again?
-      - see::
+      - [[Writing Guide - Nicolay Gerold]]
 
   resource:
     filePath: "02_resources/{{slug}}.md"
@@ -147,6 +143,32 @@ templates:
           	- see::
           **Target**
           	- used_in::
+      - name: "notes/.gitkeep"
+        template: ""
+
+  work:
+    folderPattern: "{{folder}}/work/{{date}}-{{slug}}"
+    files:
+      - name: "index.md"
+        template: |
+          ---
+          title: {{title}}
+          type: work
+          status: {{status|Active}}
+          created_date: {{date}}
+          tags:
+            - work
+            - status/backlog
+          ---
+
+          ## Objective
+          {{cursor}}
+
+          ## Tasks
+          - [ ] 
+
+          ## Notes
+
       - name: "notes/.gitkeep"
         template: ""
 
@@ -226,6 +248,7 @@ templates:
       ---
       created_date: {{date}}
       tags:
+        - weeklynote
       ---
 
 
@@ -267,9 +290,11 @@ templates:
     template: |
       ---
       created_date: {{date}}
-      updated_date: {{date}}
       tags:
         - quote
+      author:
+      quote:
+      see_more:
       ---
 
       # {{title}}
@@ -278,9 +303,6 @@ templates:
       >  `= this.quote`
       >  — `= this.author`
 
-      In which context will I want to stumble upon it again?
-      - see::
-
   experiment:
     filePath: "04_journal/experiments/{{slug}}.md"
     template: |
@@ -288,6 +310,7 @@ templates:
       created_date: {{date}}
       tags:
         - experiment
+        - status/active
       ---
 
       # {{title}}

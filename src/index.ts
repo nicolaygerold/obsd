@@ -340,6 +340,7 @@ obsd new inbox "Title"                      # Creates 05_inbox/dated-note.md (em
 obsd new inbox "Title" "Content"            # Creates with content (second arg)
 obsd new scratch "Title" --prefix <xx>      # Creates <prefix>_folder/notes/dated-note.md
 obsd new scratch "Title" --prefix <xx> --at-root  # Creates at folder root
+obsd new work "Title" --prefix <xx>         # Creates <prefix>_folder/work/dated-slug/ with index.md
 obsd new episode "Guest Name"               # Creates interview episode in ha_howaiisbuilt/guests/
 obsd new episode "Topic" --solo             # Creates solo episode in ha_howaiisbuilt/
 
@@ -350,7 +351,7 @@ obsd archive resource <prefix>_<slug>       # Move to 03_archive/resources/ (fol
 
 ### Options
 
-- \`--prefix <xx>\` — 2-character prefix (auto-generated for project/area, use for scratch/resource to target specific folder)
+- \`--prefix <xx>\` — 2-character prefix (auto-generated for project/area, use for scratch/resource/work to target specific folder)
 - \`--area <name>\` — Area prefix for posts
 - \`--solo\` — For episode type, creates a solo episode instead of interview
 - \`--at-root\` — For scratch type, creates file at folder root (not in notes/)
@@ -386,12 +387,12 @@ program
   .action(async (type: string, title: string | undefined, opts: any) => {
     let actualTitle = title || "Untitled";
 
-    // For scratch, validate prefix
-    if (type === "scratch") {
+    // For work and scratch, validate prefix
+    if (type === "work" || type === "scratch") {
       const prefix = opts.prefix;
       if (!prefix && !opts.atRoot) {
-        console.error("Error: --prefix required for scratch type");
-        console.error("Usage: obsd new scratch \"Title\" --prefix ab");
+        console.error(`Error: --prefix required for ${type} type`);
+        console.error(`Usage: obsd new ${type} "Title" --prefix ab`);
         process.exit(1);
       }
 
