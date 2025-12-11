@@ -128,6 +128,17 @@ templates:
 
       {{cursor}}
 
+  scratch_root:
+    filePath: "{{folder}}/{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      ---
+
+      # {{title}}
+
+      {{cursor}}
+
   daily:
     filePath: "04_journal/daily/{{date}}.md"
     template: |

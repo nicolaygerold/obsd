@@ -128,7 +128,12 @@ function createEntity(type: string, title: string, options: any = {}) {
   const config = YAML.parse(templatesContent);
 
   // For episode type with --solo flag, use solo_episode template
-  const actualType = type === "episode" && options.solo ? "solo_episode" : type;
+  let actualType = type === "episode" && options.solo ? "solo_episode" : type;
+
+  // For scratch type with --at-root flag, use scratch_root template
+  if (type === "scratch" && options.atRoot) {
+    actualType = "scratch_root";
+  }
 
   const template = config.templates[actualType];
   if (!template) {
@@ -343,7 +348,7 @@ Types:
    area                    Creates an area folder with index and notes/
    post                    Creates a blog post in 01_areas/<area>
    resource                Creates a resource note in 02_resources
-   scratch                 Creates a scratch note in a project or area (requires --prefix)
+   scratch                 Creates a scratch note in a project or area (requires --prefix, use --at-root for root)
    inbox                   Creates a quick capture in 05_inbox with timestamp
    daily                   Creates a daily note for today in 04_journal/daily/
    weekly                  Creates a weekly note in 04_journal/weeklies/
@@ -358,6 +363,7 @@ Examples:
    obsman new post "How to Build CLIs" --area pb
    obsman new resource "Git Worktrees Guide"
    obsman new scratch "Initial thoughts" --prefix ab
+   obsman new scratch "Strategy" --prefix ab --at-root
    obsman new inbox "Check out this tool"       # quick capture
    obsman new inbox "Read later" "https://..." # with instant content
    obsman new inbox "Task" --type task --content "Details"
@@ -377,6 +383,7 @@ Options:
    --type <type>          Set type for inbox (task, link, idea, etc.)
    --content <text>       Content for inbox item (or pass as second string argument)
    --solo                 For episode type, creates solo episode instead of interview
+   --at-root              For scratch type, creates file at folder root (not in notes/)
 `);
 }
 
@@ -431,6 +438,8 @@ if (command === "new") {
       options.content = args[++i];
     } else if (args[i] === "--solo") {
       options.solo = true;
+    } else if (args[i] === "--at-root") {
+      options.atRoot = true;
     } else if (args[i] === "--prefix" || args[i] === "--project") {
       const prefixValue = args[++i];
       if (prefixValue.length !== 2) {
