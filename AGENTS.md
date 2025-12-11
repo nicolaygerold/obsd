@@ -53,7 +53,7 @@ bun run build
 bun link --force
 
 # Test
-obsd new post "Test" --area personal_blog
+obsd new post "Test" --area pb_personal_blog
 ```
 
 ## Adding a New Command
@@ -104,7 +104,7 @@ Test each template type after changes:
 ```bash
 cd /Users/nicolaygerold/code/personal/obsd
 
-obsd new post "Test Post" --area personal_blog
+obsd new post "Test Post" --area pb_personal_blog
 obsd new resource "Test Resource"
 obsd new project "Test Project"
 obsd new area "Test Area"
@@ -124,7 +124,7 @@ Edit the relevant template in `templates.yml`, then rebuild
 Add to the template YAML frontmatter section
 
 ### Change default area for posts
-Modify the default in `createEntity()` function where `area: options.area || 'personal_blog'`
+Modify the default in `createEntity()` function where `area: options.area || 'pb_personal_blog'`
 
 ## Important Notes
 

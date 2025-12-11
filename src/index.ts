@@ -158,7 +158,7 @@ function createEntity(type: string, title: string, options: any = {}) {
     slug,
     date,
     status: type === "project" ? "Planned" : "Active",
-    area: options.area || "personal_blog",
+    area: options.area || "pb_personal_blog",
     dependencies: options.dependencies || "none",
     type: options.type || "task",
     content: options.content || "",
@@ -172,6 +172,12 @@ function createEntity(type: string, title: string, options: any = {}) {
       config.vaultPath,
       renderTemplate(template.filePath, vars),
     );
+
+    if (existsSync(filePath)) {
+      console.error(`✗ File already exists: ${filePath}`);
+      process.exit(1);
+    }
+
     const fileDir = dirname(filePath);
     ensureDir(fileDir);
 
@@ -189,6 +195,12 @@ function createEntity(type: string, title: string, options: any = {}) {
     config.vaultPath,
     renderTemplate(template.folderPattern!, vars),
   );
+
+  if (existsSync(folderPath)) {
+    console.error(`✗ Folder already exists: ${folderPath}`);
+    process.exit(1);
+  }
+
   ensureDir(folderPath);
 
   for (const fileDef of template.files!) {

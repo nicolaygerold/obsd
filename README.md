@@ -32,7 +32,7 @@ vault/
 │   └── cd_api-redesign/
 ├── 01_areas/           # Ongoing responsibility areas
 │   ├── en_engineering/
-│   └── pb_personal-blog/
+│   └── pb_personal_blog/
 ├── 02_resources/       # Reference notes, quotes, learnings
 │   ├── git-worktrees-guide.md
 │   └── async-rust.md
@@ -83,7 +83,7 @@ obsd new project "API Rewrite" --prefix ab
 obsd new area "Health"
 
 # Create a blog post
-obsd new post "How to Build CLIs" --area personal_blog
+obsd new post "How to Build CLIs" --area pb_personal_blog
 
 # Create a resource note
 obsd new resource "Git Worktrees Guide"
@@ -178,7 +178,7 @@ templates:
 
 ```
 --prefix <xx>    Two-character prefix (auto-generated for project/area, required for scratch)
---area <name>    Set area/folder for post (use prefix, e.g. pb for personal_blog)
+--area <name>    Set area/folder for post (e.g. pb_personal_blog)
 --deps <deps>    Dependencies (comma-separated, projects only)
 --solo           For episode type, creates solo episode instead of interview
 ```
