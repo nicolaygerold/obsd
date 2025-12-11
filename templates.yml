@@ -122,6 +122,8 @@ templates:
     template: |
       ---
       created_date: {{date}}
+      tags:
+      - scratchpad
       ---
 
       # {{title}}
@@ -133,6 +135,8 @@ templates:
     template: |
       ---
       created_date: {{date}}
+      tags:
+      - scratchpad
       ---
 
       # {{title}}
