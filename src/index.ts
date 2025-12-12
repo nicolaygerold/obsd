@@ -7,6 +7,7 @@ import {
   existsSync,
   renameSync,
   readdirSync,
+  unlinkSync,
 } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -102,6 +103,28 @@ function generateUniquePrefix(config: any): string {
   return prefix;
 }
 
+function validatePrefixUnique(prefix: string, config: any): boolean {
+  // Check if prefix exists in projects
+  const projectsDir = join(config.vaultPath, config.projectsRoot);
+  if (existsSync(projectsDir)) {
+    const projectDirs = readdirSync(projectsDir);
+    if (projectDirs.some((dir) => dir.startsWith(prefix + "_"))) {
+      return false;
+    }
+  }
+
+  // Check if prefix exists in areas
+  const areasDir = join(config.vaultPath, config.areasRoot);
+  if (existsSync(areasDir)) {
+    const areaDirs = readdirSync(areasDir);
+    if (areaDirs.some((dir) => dir.startsWith(prefix + "_"))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function findTemplatesPath(): string {
   // Try relative to the script location (for installed package)
   const installedPath = join(__dirname, "templates.yml");
@@ -158,6 +181,46 @@ function createEntity(type: string, title: string, options: any = {}) {
     console.log(`Generated prefix: ${prefix}`);
   }
 
+  // Validate prefix uniqueness for custom prefixes
+  if ((type === "project" || type === "area") && prefix && options.prefix) {
+    if (!validatePrefixUnique(prefix, config)) {
+      console.error(`Error: Prefix '${prefix}' already exists in projects or areas`);
+      process.exit(1);
+    }
+  }
+
+  // Generate unique prefix for work items (per project/area)
+  let workItemPrefix = "";
+  if (type === "work") {
+    const existingWorkPrefixes = new Set<string>();
+    const folderPath = join(config.vaultPath, options.folder);
+    const workPath = join(folderPath, "work");
+    
+    if (existsSync(workPath)) {
+      const statusFolders = ["backlog", "active", "review", "done"];
+      for (const statusFolder of statusFolders) {
+        const statusPath = join(workPath, statusFolder);
+        if (existsSync(statusPath)) {
+          const files = readdirSync(statusPath);
+          for (const file of files) {
+            const match = file.match(/^([a-z]{2})_/);
+            if (match) {
+              existingWorkPrefixes.add(match[1]);
+            }
+          }
+        }
+      }
+    }
+
+    // Generate random prefix until we find a unique one
+    const chars = "abcdefghijklmnopqrstuvwxyz";
+    do {
+      workItemPrefix =
+        chars[Math.floor(Math.random() * chars.length)] +
+        chars[Math.floor(Math.random() * chars.length)];
+    } while (existingWorkPrefixes.has(workItemPrefix));
+  }
+
 
 
   const vars: Record<string, string> = {
@@ -169,7 +232,7 @@ function createEntity(type: string, title: string, options: any = {}) {
     dependencies: options.dependencies || "none",
     type: options.type || "task",
     content: options.content || "",
-    prefix: prefix || "",
+    prefix: type === "work" ? workItemPrefix : (prefix || ""),
     folder: options.folder || "",
   };
 
@@ -259,6 +322,125 @@ function archiveEntity(
   console.log(`  ${targetPath}`);
 }
 
+function markWork(folderPrefix: string, itemPrefix: string, status: string) {
+  const templatesPath = findTemplatesPath();
+  const config = YAML.parse(readFileSync(templatesPath, "utf-8"));
+
+  const validStatuses = ["backlog", "active", "review", "done"];
+  if (!validStatuses.includes(status.toLowerCase())) {
+    console.error(
+      `Invalid status: ${status}. Valid statuses: ${validStatuses.join(", ")}`,
+    );
+    process.exit(1);
+  }
+
+  const statusLower = status.toLowerCase();
+  let sourcePath: string | null = null;
+  let sourceFolder: string | null = null;
+  let fileName: string | null = null;
+
+  // Search in projects first
+  const projectsDir = join(config.vaultPath, config.projectsRoot);
+  if (existsSync(projectsDir)) {
+    const projectDirs = readdirSync(projectsDir);
+    const projectDir = projectDirs.find((d) => d.startsWith(folderPrefix + "_"));
+    if (projectDir) {
+      const workPath = join(config.vaultPath, config.projectsRoot, projectDir, "work");
+      if (existsSync(workPath)) {
+        for (const stat of ["backlog", "active", "review", "done"]) {
+          const statusPath = join(workPath, stat);
+          if (existsSync(statusPath)) {
+            const files = readdirSync(statusPath);
+            const found = files.find((f) => f.startsWith(itemPrefix + "_"));
+            if (found) {
+              sourceFolder = join(config.projectsRoot, projectDir);
+              fileName = found;
+              sourcePath = join(statusPath, found);
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Search in areas if not found in projects
+  if (!sourcePath) {
+    const areasDir = join(config.vaultPath, config.areasRoot);
+    if (existsSync(areasDir)) {
+      const areaDirs = readdirSync(areasDir);
+      const areaDir = areaDirs.find((d) => d.startsWith(folderPrefix + "_"));
+      if (areaDir) {
+        const workPath = join(config.vaultPath, config.areasRoot, areaDir, "work");
+        if (existsSync(workPath)) {
+          for (const stat of ["backlog", "active", "review", "done"]) {
+            const statusPath = join(workPath, stat);
+            if (existsSync(statusPath)) {
+              const files = readdirSync(statusPath);
+              const found = files.find((f) => f.startsWith(itemPrefix + "_"));
+              if (found) {
+                sourceFolder = join(config.areasRoot, areaDir);
+                fileName = found;
+                sourcePath = join(statusPath, found);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (!sourcePath) {
+    console.error(
+      `Work item not found: ${folderPrefix}_*/${itemPrefix}_* in any project or area work folder`,
+    );
+    process.exit(1);
+  }
+
+  // Construct target path
+  const targetPath = join(
+    config.vaultPath,
+    sourceFolder!,
+    "work",
+    statusLower,
+    fileName!,
+  );
+
+  // Ensure target directory exists
+  ensureDir(dirname(targetPath));
+
+  // Read the file to update frontmatter
+  let content = readFileSync(sourcePath, "utf-8");
+
+  // Update status in frontmatter
+  const statusMap: Record<string, string> = {
+    backlog: "Backlog",
+    active: "Active",
+    review: "Review",
+    done: "Done",
+  };
+
+  const newStatus = statusMap[statusLower];
+  content = content.replace(/^status: .+$/m, `status: ${newStatus}`);
+  content = content.replace(
+    /tags:\n([\s\S]*?)- status\/[^\n]+/,
+    `tags:\n$1- status/${statusLower}`,
+  );
+
+  // Move file and write updated content
+  try {
+    writeFileSync(targetPath, content);
+    unlinkSync(sourcePath);
+  } catch (e) {
+    console.error(`Error moving file: ${e}`);
+    process.exit(1);
+  }
+
+  console.log(`✓ Marked work item as ${statusLower}`);
+  console.log(`  ${targetPath}`);
+}
+
 function initVault() {
   const templatesPath = findTemplatesPath();
   const config = YAML.parse(readFileSync(templatesPath, "utf-8"));
@@ -331,27 +513,44 @@ Use \`obsd\` to create and manage notes in the vault using the PARA method (Proj
 ### Quick Reference
 
 \`\`\`bash
-obsd new project "Title"                    # Creates 00_projects/<prefix>_<slug>/
-obsd new area "Title"                       # Creates 01_areas/<prefix>_<slug>/
-obsd new post "Title" --area <prefix>       # Creates <area>/post.md
-obsd new resource "Title"                   # Creates 02_resources/resource.md
-obsd new resource "Title" --prefix <xx>     # Creates resource inside 02_resources/<prefix>_<slug>/ or creates folder if doesn't exist
-obsd new inbox "Title"                      # Creates 05_inbox/dated-note.md (empty)
-obsd new inbox "Title" "Content"            # Creates with content (second arg)
-obsd new scratch "Title" --prefix <xx>      # Creates <prefix>_folder/notes/dated-note.md
-obsd new scratch "Title" --prefix <xx> --at-root  # Creates at folder root
-obsd new work "Title" --prefix <xx>         # Creates <prefix>_folder/work/dated-slug/ with index.md
-obsd new episode "Guest Name"               # Creates interview episode in ha_howaiisbuilt/guests/
-obsd new episode "Topic" --solo             # Creates solo episode in ha_howaiisbuilt/
+obsd new project "Title"                           # Creates 00_projects/<prefix>_<slug>/ with work folders
+obsd new area "Title"                              # Creates 01_areas/<prefix>_<slug>/ with work folders
+obsd new post "Title" --area <prefix>              # Creates <area>/post.md
+obsd new resource "Title"                          # Creates 02_resources/resource.md
+obsd new resource "Title" --prefix <xx>            # Creates resource inside 02_resources/<prefix>_<slug>/
+obsd new inbox "Title"                             # Creates 05_inbox/dated-note.md
+obsd new inbox "Title" "Content"                   # Creates with content (second arg)
+obsd new scratch "Title" --prefix <xx>             # Creates <prefix>_folder/notes/dated-note.md
+obsd new scratch "Title" --prefix <xx> --at-root   # Creates at folder root
+obsd new work "Title" --prefix <xx> --item <id>    # Creates <prefix>_folder/work/backlog/<prefix>_<item>.md
+obsd new episode "Guest Name"                      # Creates interview episode in ha_howaiisbuilt/guests/
+obsd new episode "Topic" --solo                    # Creates solo episode in ha_howaiisbuilt/
 
-obsd archive project <prefix>_<slug>        # Move to 03_archive/projects/
-obsd archive area <prefix>_<slug>           # Move to 03_archive/areas/
-obsd archive resource <prefix>_<slug>       # Move to 03_archive/resources/ (folder)
+obsd mark work --prefix <xx> --item <id> --status <status>  # Move work item between statuses
+
+obsd archive project <prefix>_<slug>               # Move to 03_archive/projects/
+obsd archive area <prefix>_<slug>                  # Move to 03_archive/areas/
+obsd archive resource <prefix>_<slug>              # Move to 03_archive/resources/
+\`\`\`
+
+### Work Item Workflow
+
+Work items live in project/area folders and flow through: \`backlog\` → \`active\` → \`review\` → \`done\`
+
+Each work item gets a unique 2-letter prefix within its project/area.
+
+\`\`\`bash
+obsd new work "Build dashboard" --prefix am              # Creates xy_build-dashboard.md in am_amp/work/backlog/
+obsd mark work --prefix am --item xy --status active     # Move am_*/xy_* to active
+obsd mark work --prefix am --item xy --status review     # Move am_*/xy_* to review
+obsd mark work --prefix am --item xy --status done       # Mark am_*/xy_* as complete
 \`\`\`
 
 ### Options
 
-- \`--prefix <xx>\` — 2-character prefix (auto-generated for project/area, use for scratch/resource/work to target specific folder)
+- \`--prefix <xx>\` — 2-character prefix (auto-generated for project/area, required for scratch/resource/work)
+- \`--item <id>\` — Item identifier (required for work items)
+- \`--status <status>\` — Status for mark command (backlog, active, review, done)
 - \`--area <name>\` — Area prefix for posts
 - \`--solo\` — For episode type, creates a solo episode instead of interview
 - \`--at-root\` — For scratch type, creates file at folder root (not in notes/)
@@ -377,7 +576,8 @@ program
 program
   .command("new <type> [title]")
   .description("Create new entity (defaults to 'Untitled')")
-  .option("--prefix <xx>", "Two-character prefix for project/area/scratch/resource")
+  .option("--prefix <xx>", "Two-character prefix for project/area/scratch/resource/work")
+  .option("--item <name>", "Item identifier for work items")
   .option("--area <name>", "Area prefix for posts (e.g., pb)")
   .option("--deps <deps>", "Dependencies for project (comma-separated)")
   .option("--type <type>", "Type for inbox (task, link, idea, etc.)")
@@ -387,8 +587,58 @@ program
   .action(async (type: string, title: string | undefined, opts: any) => {
     let actualTitle = title || "Untitled";
 
-    // For work and scratch, validate prefix
-    if (type === "work" || type === "scratch") {
+    // For work, require prefix
+    if (type === "work") {
+      if (!opts.prefix) {
+        console.error("Error: --prefix required for work type");
+        console.error(`Usage: obsd new work "Title" --prefix ab`);
+        process.exit(1);
+      }
+
+      if (opts.prefix.length !== 2) {
+        console.error("Error: --prefix must be exactly 2 characters");
+        process.exit(1);
+      }
+
+      // Find the folder with this prefix
+      const prefix = opts.prefix;
+      const templatesPath = findTemplatesPath();
+      const config = YAML.parse(readFileSync(templatesPath, "utf-8"));
+
+      // Check projects first
+      const projectsDir = join(config.vaultPath, config.projectsRoot);
+      if (existsSync(projectsDir)) {
+        const projectDirs = readdirSync(projectsDir);
+        const projectDir = projectDirs.find((d) =>
+          d.startsWith(prefix + "_"),
+        );
+        if (projectDir) {
+          opts.folder = join(config.projectsRoot, projectDir);
+          createEntity(type, actualTitle, opts);
+          return;
+        }
+      }
+
+      // Check areas
+      const areasDir = join(config.vaultPath, config.areasRoot);
+      if (existsSync(areasDir)) {
+        const areaDirs = readdirSync(areasDir);
+        const areaDir = areaDirs.find((d) => d.startsWith(prefix + "_"));
+        if (areaDir) {
+          opts.folder = join(config.areasRoot, areaDir);
+          createEntity(type, actualTitle, opts);
+          return;
+        }
+      }
+
+      console.error(
+        `Error: No project or area found with prefix '${prefix}'`,
+      );
+      process.exit(1);
+    }
+
+    // For scratch, validate prefix
+    if (type === "scratch") {
       const prefix = opts.prefix;
       if (!prefix && !opts.atRoot) {
         console.error(`Error: --prefix required for ${type} type`);
@@ -533,6 +783,32 @@ program
     }
     // Note: resource type works for both single files and resource folders
     archiveEntity(type as "project" | "area" | "resource", name);
+  });
+
+// Mark command for work items
+program
+  .command("mark <type>")
+  .requiredOption("--prefix <xx>", "Two-character project/area prefix")
+  .requiredOption("--item <xx>", "Two-character work item prefix")
+  .requiredOption("--status <status>", "Status (backlog, active, review, done)")
+  .description("Move work item between status folders")
+  .action((type: string, opts: any) => {
+    if (type !== "work") {
+      console.error(`mark command only supports 'work' type`);
+      process.exit(1);
+    }
+
+    if (opts.prefix.length !== 2) {
+      console.error("Error: --prefix must be exactly 2 characters");
+      process.exit(1);
+    }
+
+    if (opts.item.length !== 2) {
+      console.error("Error: --item must be exactly 2 characters");
+      process.exit(1);
+    }
+
+    markWork(opts.prefix, opts.item, opts.status);
   });
 
 program.parse();

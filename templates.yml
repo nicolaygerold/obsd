@@ -11,62 +11,26 @@ templates:
   area:
     folderPattern: "01_areas/{{prefix}}_{{slug}}"
     files:
-      - name: "index.md"
-        template: |
-          ---
-          title: {{title}}
-          type: Area
-          status: {{status|Active}}
-          prefix: {{prefix}}
-          created_date: {{date}}
-          ---
-
-          ## Overview
-          {{cursor}}
-
-          ## Responsibilities
-          -
-      - name: "quicklinks.md"
-        template: |
-          **{{title}}**
-
-          - [[index|Index]]
-          - [[../..|Vault Home]]
-      - name: "resources.md"
-        template: |
-          **Resources**
-
-          Links to resources from [[02_resources/|Resources]] folder:
-          -
-      - name: "notes/.gitkeep"
+      - name: "work/backlog/.gitkeep"
+        template: ""
+      - name: "work/active/.gitkeep"
+        template: ""
+      - name: "work/review/.gitkeep"
+        template: ""
+      - name: "work/done/.gitkeep"
         template: ""
 
   project:
     folderPattern: "00_projects/{{prefix}}_{{slug}}"
     files:
-      - name: "index.md"
-        template: |
-          ---
-          title: {{title}}
-          type: Project
-          status: {{status|Planned}}
-          area: {{area}}
-          dependencies: {{dependencies|none}}
-          prefix: {{prefix}}
-          created_date: {{date}}
-          ---
-
-          ## Outcome
-          - {{cursor}}
-
-          ## Next Actions
-          -
-      - name: "quicklinks.md"
-        template: |
-          **{{title}}**
-
-          - [[index|Index]]
-          - [[../..|Projects Root]]
+      - name: "work/backlog/.gitkeep"
+        template: ""
+      - name: "work/active/.gitkeep"
+        template: ""
+      - name: "work/review/.gitkeep"
+        template: ""
+      - name: "work/done/.gitkeep"
+        template: ""
 
   post:
     filePath: "01_areas/{{area}}/{{slug}}.md"
@@ -147,30 +111,26 @@ templates:
         template: ""
 
   work:
-    folderPattern: "{{folder}}/work/{{date}}-{{slug}}"
-    files:
-      - name: "index.md"
-        template: |
-          ---
-          title: {{title}}
-          type: work
-          status: {{status|Active}}
-          created_date: {{date}}
-          tags:
-            - work
-            - status/backlog
-          ---
+    filePath: "{{folder}}/work/backlog/{{prefix}}_{{slug}}.md"
+    template: |
+      ---
+      title: {{title}}
+      type: work
+      status: {{status|Backlog}}
+      prefix: {{prefix}}
+      created_date: {{date}}
+      tags:
+        - work
+        - status/backlog
+      ---
 
-          ## Objective
-          {{cursor}}
+      ## Objective
+      {{cursor}}
 
-          ## Tasks
-          - [ ] 
+      ## Tasks
+      - [ ] 
 
-          ## Notes
-
-      - name: "notes/.gitkeep"
-        template: ""
+      ## Notes
 
   scratch:
     filePath: "{{folder}}/notes/{{date}}-{{slug}}.md"

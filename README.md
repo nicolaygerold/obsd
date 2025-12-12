@@ -41,6 +41,11 @@ vault/
 │   ├── daily/
 │   ├── weeklies/
 │   └── experiments/
+├── work/               # Work items with status workflow
+│   ├── backlog/
+│   ├── active/
+│   ├── review/
+│   └── done/
 ```
 
 **This is just my setup.** You can customize all the folder names, prefixes, and templates in `templates.yml`. Want to call your projects folder something else? Use different numbering? Change how notes are structured? Just edit the config and you're done.
@@ -91,6 +96,16 @@ obsd new resource "Git Worktrees Guide"
 # Create a scratch note in a project/area
 obsd new scratch "Quick thoughts" --prefix ab
 
+# Create a work item
+obsd new work "Fix navigation bug" --prefix am --item ab
+
+# Mark work item as active
+obsd mark work --prefix am --item ab --status active
+
+# Move through workflow: backlog → active → review → done
+obsd mark work --prefix am --item ab --status review
+obsd mark work --prefix am --item ab --status done
+
 # Create a daily journal note
 obsd new daily
 
@@ -110,6 +125,20 @@ obsd new episode "Guest Name"
 obsd new episode "My Episode Title" --solo
 ```
 
+### Work items
+
+Work items progress through statuses: **backlog → active → review → done**
+
+```bash
+# Create a work item (starts in backlog)
+obsd new work "Build user dashboard" --prefix am --item xy
+
+# Move through workflow
+obsd mark work --prefix am --item xy --status active
+obsd mark work --prefix am --item xy --status review
+obsd mark work --prefix am --item xy --status done
+```
+
 ### Archive entities
 
 ```bash
@@ -127,6 +156,7 @@ obsd archive resource git-worktrees-guide
 | **post**       | `01_areas/<area>/`                              | Single file                                           | Article/blog post in an area                               |
 | **resource**   | `02_resources/`                                 | Single file                                           | Reference note, guide, or learning                         |
 | **scratch**    | `<project\|area>/notes/`                        | Single dated file                                     | Temporary notes within a project/area                      |
+| **work**       | `work/<status>/`                                | Single file                                           | Task with status: backlog, active, review, done            |
 | **daily**      | `04_journal/daily/`                             | Single dated file                                     | Daily reflection and planning                              |
 | **weekly**     | `04_journal/weeklies/`                          | Single dated file                                     | Weekly review and retrospective                            |
 | **quote**      | `02_resources/`                                 | Single file                                           | Memorable quote with metadata                              |
@@ -177,7 +207,9 @@ templates:
 ## Options
 
 ```
---prefix <xx>    Two-character prefix (auto-generated for project/area, required for scratch)
+--prefix <xx>    Two-character prefix (auto-generated for project/area, required for scratch/work)
+--item <name>    Item identifier (required for work items)
+--status <status>  Status for mark command (backlog, active, review, done)
 --area <name>    Set area/folder for post (e.g. pb_personal_blog)
 --deps <deps>    Dependencies (comma-separated, projects only)
 --solo           For episode type, creates solo episode instead of interview
