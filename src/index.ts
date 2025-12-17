@@ -398,13 +398,18 @@ function markWork(folderPrefix: string, itemPrefix: string, status: string) {
     process.exit(1);
   }
 
-  // Construct target path
+  // Construct target path - remove prefix from filename when done
+  let targetFileName = fileName!;
+  if (statusLower === "done") {
+    targetFileName = targetFileName.replace(`${itemPrefix}_`, "");
+  }
+  
   const targetPath = join(
     config.vaultPath,
     sourceFolder!,
     "work",
     statusLower,
-    fileName!,
+    targetFileName,
   );
 
   // Ensure target directory exists
@@ -423,10 +428,16 @@ function markWork(folderPrefix: string, itemPrefix: string, status: string) {
 
   const newStatus = statusMap[statusLower];
   content = content.replace(/^status: .+$/m, `status: ${newStatus}`);
-  content = content.replace(
-    /tags:\n([\s\S]*?)- status\/[^\n]+/,
-    `tags:\n$1- status/${statusLower}`,
-  );
+  
+  if (statusLower === "done") {
+    // Remove the status tag entirely when done
+    content = content.replace(/\n\s*- status\/[^\n]+/, "");
+  } else {
+    content = content.replace(
+      /tags:\n([\s\S]*?)- status\/[^\n]+/,
+      `tags:\n$1- status/${statusLower}`,
+    );
+  }
 
   // Move file and write updated content
   try {
@@ -518,6 +529,8 @@ obsd new area "Title"                              # Creates 01_areas/<prefix>_<
 obsd new post "Title" --area <prefix>              # Creates <area>/post.md
 obsd new resource "Title"                          # Creates 02_resources/resource.md
 obsd new resource "Title" --prefix <xx>            # Creates resource inside 02_resources/<prefix>_<slug>/
+obsd new recipe "Title"                            # Creates 02_resources/re_<slug>.md (prefix: re)
+obsd new recipe "Title" --prefix <xx>              # Creates 02_resources/<prefix>_<slug>.md
 obsd new inbox "Title"                             # Creates 05_inbox/dated-note.md
 obsd new inbox "Title" "Content"                   # Creates with content (second arg)
 obsd new scratch "Title" --prefix <xx>             # Creates <prefix>_folder/notes/dated-note.md
@@ -765,6 +778,17 @@ program
       opts.prefix = prefix; // ensure prefix is set
       createEntity("resource_folder", actualTitle, opts);
       return;
+    }
+
+    // For recipe, set default prefix if not provided
+    if (type === "recipe") {
+      if (!opts.prefix) {
+        opts.prefix = "re";
+      }
+      if (opts.prefix.length !== 2) {
+        console.error("Error: --prefix must be exactly 2 characters");
+        process.exit(1);
+      }
     }
 
     createEntity(type, actualTitle, opts);

@@ -442,3 +442,29 @@ templates:
       ## Title Ideas
 
       1.
+
+  recipe:
+    filePath: "02_resources/{{prefix}}_recipes/{{slug}}.md"
+    template: |
+      ---
+      created_date: {{date}}
+      updated_date: {{date}}
+      cuisine:
+      servings:
+      time_prep:
+      time_cook:
+      ---
+
+      # {{title}}
+
+      {{cursor}}
+
+      ## Ingredients
+
+      - 
+
+      ## Instructions
+
+      1. 
+
+      ## Notes
