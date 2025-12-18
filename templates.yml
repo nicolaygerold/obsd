@@ -33,7 +33,7 @@ templates:
         template: ""
 
   post:
-    filePath: "01_areas/{{area}}/{{slug}}.md"
+    filePath: "01_areas/{{area}}/backlog/{{prefix}}_{{slug}}.md"
     template: |
       ---
       created_date: {{date}}

@@ -221,6 +221,53 @@ function createEntity(type: string, title: string, options: any = {}) {
     } while (existingWorkPrefixes.has(workItemPrefix));
   }
 
+  // Generate unique 3-letter prefix for posts (per area)
+  let postPrefix = "";
+  let resolvedArea = options.area || "pb_personal_blog";
+  if (type === "post") {
+    // Resolve area prefix to full folder name
+    const areaPrefix = options.area || "pb";
+    const areasDir = join(config.vaultPath, config.areasRoot);
+    if (existsSync(areasDir)) {
+      const areaDirs = readdirSync(areasDir);
+      const areaDir = areaDirs.find((d) => d.startsWith(areaPrefix + "_"));
+      if (areaDir) {
+        resolvedArea = areaDir;
+      } else {
+        console.error(`Error: No area found with prefix '${areaPrefix}'`);
+        process.exit(1);
+      }
+    }
+
+    const existingPostPrefixes = new Set<string>();
+    const areaPath = join(config.vaultPath, config.areasRoot, resolvedArea);
+    
+    if (existsSync(areaPath)) {
+      const statusFolders = ["backlog", "active", "review", "done"];
+      for (const statusFolder of statusFolders) {
+        const statusPath = join(areaPath, statusFolder);
+        if (existsSync(statusPath)) {
+          const files = readdirSync(statusPath);
+          for (const file of files) {
+            const match = file.match(/^([a-z]{3})_/);
+            if (match) {
+              existingPostPrefixes.add(match[1]);
+            }
+          }
+        }
+      }
+    }
+
+    // Generate random 3-letter prefix until we find a unique one
+    const chars = "abcdefghijklmnopqrstuvwxyz";
+    do {
+      postPrefix =
+        chars[Math.floor(Math.random() * chars.length)] +
+        chars[Math.floor(Math.random() * chars.length)] +
+        chars[Math.floor(Math.random() * chars.length)];
+    } while (existingPostPrefixes.has(postPrefix));
+  }
+
 
 
   const vars: Record<string, string> = {
@@ -228,11 +275,11 @@ function createEntity(type: string, title: string, options: any = {}) {
     slug,
     date,
     status: type === "project" ? "Planned" : "Active",
-    area: options.area || "pb_personal_blog",
+    area: type === "post" ? resolvedArea : (options.area || "pb_personal_blog"),
     dependencies: options.dependencies || "none",
     type: options.type || "task",
     content: options.content || "",
-    prefix: type === "work" ? workItemPrefix : (prefix || ""),
+    prefix: type === "work" ? workItemPrefix : type === "post" ? postPrefix : (prefix || ""),
     folder: options.folder || "",
   };
 
@@ -319,6 +366,95 @@ function archiveEntity(
   renameSync(sourcePath, targetPath);
 
   console.log(`✓ Archived ${type}: ${folderName}`);
+  console.log(`  ${targetPath}`);
+}
+
+function markPost(areaPrefix: string, postPrefix: string, status: string) {
+  const templatesPath = findTemplatesPath();
+  const config = YAML.parse(readFileSync(templatesPath, "utf-8"));
+
+  const validStatuses = ["backlog", "active", "review", "done"];
+  if (!validStatuses.includes(status.toLowerCase())) {
+    console.error(
+      `Invalid status: ${status}. Valid statuses: ${validStatuses.join(", ")}`,
+    );
+    process.exit(1);
+  }
+
+  const statusLower = status.toLowerCase();
+  let sourcePath: string | null = null;
+  let sourceFolder: string | null = null;
+  let fileName: string | null = null;
+
+  // Search in areas for the post
+  const areasDir = join(config.vaultPath, config.areasRoot);
+  if (existsSync(areasDir)) {
+    const areaDirs = readdirSync(areasDir);
+    const areaDir = areaDirs.find((d) => d.startsWith(areaPrefix + "_"));
+    if (areaDir) {
+      const areaPath = join(config.vaultPath, config.areasRoot, areaDir);
+      for (const stat of ["backlog", "active", "review", "done"]) {
+        const statusPath = join(areaPath, stat);
+        if (existsSync(statusPath)) {
+          const files = readdirSync(statusPath);
+          const found = files.find((f) => f.startsWith(postPrefix + "_"));
+          if (found) {
+            sourceFolder = join(config.areasRoot, areaDir);
+            fileName = found;
+            sourcePath = join(statusPath, found);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (!sourcePath) {
+    console.error(
+      `Post not found: ${areaPrefix}_*/${postPrefix}_* in any area`,
+    );
+    process.exit(1);
+  }
+
+  // Construct target path - remove prefix from filename when done
+  let targetFileName = fileName!;
+  if (statusLower === "done") {
+    targetFileName = targetFileName.replace(`${postPrefix}_`, "");
+  }
+
+  const targetPath = join(
+    config.vaultPath,
+    sourceFolder!,
+    statusLower,
+    targetFileName,
+  );
+
+  // Ensure target directory exists
+  ensureDir(dirname(targetPath));
+
+  // Read the file to update frontmatter
+  let content = readFileSync(sourcePath, "utf-8");
+
+  // Update status tag in frontmatter
+  if (statusLower === "done") {
+    content = content.replace(/\n\s*- status\/[^\n]+/, "");
+  } else {
+    content = content.replace(
+      /- status\/[^\n]+/,
+      `- status/${statusLower}`,
+    );
+  }
+
+  // Move file and write updated content
+  try {
+    writeFileSync(targetPath, content);
+    unlinkSync(sourcePath);
+  } catch (e) {
+    console.error(`Error moving file: ${e}`);
+    process.exit(1);
+  }
+
+  console.log(`✓ Marked post as ${statusLower}`);
   console.log(`  ${targetPath}`);
 }
 
@@ -809,16 +945,16 @@ program
     archiveEntity(type as "project" | "area" | "resource", name);
   });
 
-// Mark command for work items
+// Mark command for work items and posts
 program
   .command("mark <type>")
   .requiredOption("--prefix <xx>", "Two-character project/area prefix")
-  .requiredOption("--item <xx>", "Two-character work item prefix")
+  .requiredOption("--item <xxx>", "Work item prefix (2 chars) or post prefix (3 chars)")
   .requiredOption("--status <status>", "Status (backlog, active, review, done)")
-  .description("Move work item between status folders")
+  .description("Move work item or post between status folders")
   .action((type: string, opts: any) => {
-    if (type !== "work") {
-      console.error(`mark command only supports 'work' type`);
+    if (type !== "work" && type !== "post") {
+      console.error(`mark command only supports 'work' and 'post' types`);
       process.exit(1);
     }
 
@@ -827,12 +963,19 @@ program
       process.exit(1);
     }
 
-    if (opts.item.length !== 2) {
-      console.error("Error: --item must be exactly 2 characters");
-      process.exit(1);
+    if (type === "work") {
+      if (opts.item.length !== 2) {
+        console.error("Error: --item must be exactly 2 characters for work items");
+        process.exit(1);
+      }
+      markWork(opts.prefix, opts.item, opts.status);
+    } else if (type === "post") {
+      if (opts.item.length !== 3) {
+        console.error("Error: --item must be exactly 3 characters for posts");
+        process.exit(1);
+      }
+      markPost(opts.prefix, opts.item, opts.status);
     }
-
-    markWork(opts.prefix, opts.item, opts.status);
   });
 
 program.parse();
